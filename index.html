@@ -428,12 +428,11 @@
   <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7b7f3f3f5f.mp3?filename=hard-rock-alexgrohl-14107.mp3" type="audio/mpeg">
   Seu navegador não suporta áudio HTML5.
 </audio>
-
 <script>
 document.body.addEventListener("click", () => {
   const musica = document.getElementById("bgMusic");
   musica.muted = false;   // libera o som
-  musica.play();
+  musica.play();          // garante que continue tocando
 });
 </script>
 
