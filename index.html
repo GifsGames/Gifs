@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GifsGames — Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Oxanium:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060b13;
+      --surface: #0b1525;
+      --border: #152033;
+      --cyan: #00d4f5;
+      --red: #ff2d55;
+      --gold: #ffd60a;
+      --blue: #2979ff;
+      --purple: #b066ff;
+      --text: #c2daf0;
+      --text-dim: #4a6880;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Oxanium', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Animated grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,245,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,245,0.035) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Vignette */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 35%, rgba(6,11,19,0.88) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Floating particles */
+    .particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      animation: floatUp linear infinite;
+      opacity: 0;
+    }
+    @keyframes floatUp {
+      0%   { transform: translateY(105vh); opacity: 0; }
+      8%   { opacity: 0.7; }
+      90%  { opacity: 0.35; }
+      100% { transform: translateY(-8vh) translateX(15px); opacity: 0; }
+    }
+
+    /* ── WRAPPER ─────────────────────────────── */
+    .game-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── TITLE BAR ───────────────────────────── */
+    .title-bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .game-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(13px, 2.2vw, 20px);
+      color: var(--cyan);
+      text-shadow: 0 0 12px var(--cyan), 0 0 32px rgba(0,212,245,0.45);
+      letter-spacing: 3px;
+      animation: glow 3s ease-in-out infinite;
+    }
+    @keyframes glow {
+      0%, 100% { text-shadow: 0 0 10px var(--cyan), 0 0 28px rgba(0,212,245,0.4); }
+      50%       { text-shadow: 0 0 22px var(--cyan), 0 0 60px rgba(0,212,245,0.65); }
+    }
+    .title-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--red);
+      background: rgba(255,45,85,0.12);
+      border: 1px solid rgba(255,45,85,0.4);
+      padding: 3px 9px 2px;
+    }
+
+    /* ── HUD ─────────────────────────────────── */
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      width: 100%;
+      max-width: 542px;
+      margin-bottom: 10px;
+    }
+    .hud-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 8px 10px 7px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hud-item::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .hud-item.h-score::after { background: var(--gold); }
+    .hud-item.h-lives::after  { background: var(--red); }
+    .hud-item.h-timer::after  { background: var(--cyan); }
+    .hud-item.h-record::after { background: var(--purple); }
+
+    .hud-label {
+      font-size: 7px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .hud-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(10px, 1.4vw, 13px);
+    }
+    .hud-item.h-score  .hud-value { color: var(--gold); }
+    .hud-item.h-lives  .hud-value { color: var(--red); display: flex; gap: 3px; align-items: center; }
+    .hud-item.h-timer  .hud-value { color: var(--cyan); }
+    .hud-item.h-record .hud-value { color: var(--purple); }
+
+    .timer-danger { animation: timerFlash 0.6s ease infinite !important; }
+    @keyframes timerFlash {
+      0%, 100% { color: var(--cyan); }
+      50%       { color: var(--red); text-shadow: 0 0 8px var(--red); }
+    }
+
+    /* ── CANVAS CONTAINER ────────────────────── */
+    .canvas-container {
+      position: relative;
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(0,212,245,0.08),
+        0 0 50px rgba(0,212,245,0.08),
+        inset 0 0 50px rgba(0,0,0,0.6);
+    }
+    /* CRT scanlines */
+    .canvas-container::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.07) 2px,
+        rgba(0,0,0,0.07) 4px
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+    canvas { display: block; background: #07101e; }
+
+    /* Screen shake */
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0); }
+      20%       { transform: translate(-5px, 2px); }
+      40%       { transform: translate(5px, -3px); }
+      60%       { transform: translate(-3px, -4px); }
+      80%       { transform: translate(4px, 3px); }
+    }
+    .shaking { animation: shake 0.28s ease; }
+
+    /* ── OVERLAYS (menu / game-over) ─────────── */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      z-index: 20;
+      background: rgba(6,11,19,0.93);
+      backdrop-filter: blur(5px);
+    }
+    .overlay.hidden { display: none; }
+
+    /* Menu */
+    .menu-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(20px, 3.5vw, 30px);
+      color: var(--cyan);
+      text-align: center;
+      line-height: 1.7;
+      text-shadow: 0 0 18px var(--cyan), 0 0 50px rgba(0,212,245,0.5);
+      animation: glow 2.5s ease-in-out infinite;
+    }
+    .menu-sub {
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: -10px;
+    }
+
+    .btn-primary {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(10px, 1.4vw, 13px);
+      background: linear-gradient(135deg, var(--cyan), #0099b8);
+      color: var(--bg);
+      border: none;
+      padding: 16px 40px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 24px rgba(0,212,245,0.5), 0 0 48px rgba(0,212,245,0.25);
+      transform: scale(1.04);
+    }
+    .btn-primary:active { transform: scale(0.96); }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+      width: 78%;
+    }
+    .key-grid span {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      text-align: center;
+      color: var(--text);
+    }
+
+    /* Game Over */
+    .go-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(18px, 3vw, 26px);
+      color: var(--red);
+      text-shadow: 0 0 18px var(--red), 0 0 45px rgba(255,45,85,0.5);
+      animation: flicker 2s ease-in-out infinite;
+    }
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      48%       { opacity: 1; }
+      50%       { opacity: 0.55; }
+      52%       { opacity: 1; }
+      90%       { opacity: 1; }
+      92%       { opacity: 0.7; }
+      94%       { opacity: 1; }
+    }
+
+    .record-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      background: var(--gold);
+      color: var(--bg);
+      padding: 5px 12px;
+      display: none;
+      animation: pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .record-badge.show { display: block; }
+    @keyframes pop {
+      0%   { transform: scale(0) rotate(-12deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg);  opacity: 1; }
+    }
+
+    .stat-row {
+      display: flex;
+      gap: 16px;
+    }
+    .stat-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 16px 28px;
+      text-align: center;
+      min-width: 110px;
+    }
+    .stat-label {
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 26px;
+      color: var(--gold);
+      display: block;
+    }
+    .stat-value.is-record { color: var(--purple); }
+
+    .btn-secondary {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 11px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 13px 30px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      clip-path: polygon(7px 0%, 100% 0%, calc(100% - 7px) 100%, 0% 100%);
+      transition: all 0.18s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0,212,245,0.3);
+    }
+  </style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<div class="game-wrapper">
+
+  <div class="title-bar">
+    <h1 class="game-title">GIFS GAMES</h1>
+    <span class="title-badge">Arena</span>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-item h-score">
+      <span class="hud-label">Pontos</span>
+      <span class="hud-value" id="hud-score">0</span>
+    </div>
+    <div class="hud-item h-lives">
+      <span class="hud-label">Vidas</span>
+      <div class="hud-value" id="hud-lives"></div>
+    </div>
+    <div class="hud-item h-timer">
+      <span class="hud-label">Tempo</span>
+      <span class="hud-value" id="hud-timer">120</span>
+    </div>
+    <div class="hud-item h-record">
+      <span class="hud-label">Recorde</span>
+      <span class="hud-value" id="hud-record">0</span>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-container" id="canvas-wrap">
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+
+    <!-- Menu -->
+    <div class="overlay" id="menu">
+      <div class="menu-title">GIFS<br>GAMES</div>
+      <p class="menu-sub">Desvie · Colete · Sobreviva</p>
+      <button class="btn-primary" onclick="startGame()">INICIAR</button>
+      <div class="key-grid">
+        <span>↑ Cima</span>
+        <span>↓ Baixo</span>
+        <span>← Esquerda</span>
+        <span>→ Direita</span>
+      </div>
+    </div>
+
+    <!-- Game Over -->
+    <div class="overlay hidden" id="gameover">
+      <div class="go-title">GAME OVER</div>
+      <div class="record-badge" id="record-badge">★ NOVO RECORDE ★</div>
+      <div class="stat-row">
+        <div class="stat-box">
+          <span class="stat-label">Pontuação</span>
+          <span class="stat-value" id="go-score">0</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Recorde</span>
+          <span class="stat-value is-record" id="go-record">0</span>
+        </div>
+      </div>
+      <button class="btn-secondary" onclick="restartGame()">JOGAR NOVAMENTE</button>
+    </div>
+  </div>
+
+</div>
+
+<audio id="bgMusic" loop>
+  <source src="https://actions.google.com/sounds/v1/ambiences/rock_concert.ogg" type="audio/ogg">
+</audio>
+
+<script>
+  // Spawn background particles
+  (function () {
+    const wrap = document.getElementById('particles');
+    for (let i = 0; i < 35; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (7 + Math.random() * 11) + 's';
+      p.style.animationDelay   = (Math.random() * 9) + 's';
+      p.style.background = Math.random() > 0.65 ? '#ff2d55' : '#00d4f5';
+      p.style.width  = (Math.random() > 0.5 ? 2 : 1) + 'px';
+      p.style.height = p.style.width;
+      wrap.appendChild(p);
+    }
+  })();
+
+  const canvas  = document.getElementById('gameCanvas');
+  const ctx     = canvas.getContext('2d');
+  const bgMusic = document.getElementById('bgMusic');
+
+  let player, enemy, enemy2, coin, score, lives, gameOver, powerUp, timeLeft, record;
+  let obstacles, gameStarted = false;
+
+  // ── Init ────────────────────────────────────
+  function initGame() {
+    player   = { x: 250, y: 250, size: 40, speed: 20 };
+    enemy    = { x: 50,  y: 50,  size: 40, speed: 2, frozen: false };
+    enemy2   = { x: 400, y: 400, size: 40, speed: 2, frozen: false };
+    coin     = { x: 100, y: 100, size: 15 };
+    score    = 0;
+    lives    = 3;
+    gameOver = false;
+    powerUp  = null;
+    timeLeft = 120;
+    record   = localStorage.getItem('record') || 0;
+    obstacles = [
+      { x:150, y:150, w:50, h:20 },
+      { x:300, y:300, w:20, h:70 },
+      { x:400, y:100, w:40, h:40 },
+      { x:200, y:400, w:60, h:20 },
+      { x:100, y:250, w:30, h:60 },
+      { x:350, y:200, w:50, h:50 }
+    ];
+    updateHud();
+  }
+
+  // ── HUD ─────────────────────────────────────
+  function updateHud() {
+    document.getElementById('hud-score').textContent  = score;
+    document.getElementById('hud-record').textContent = record;
+
+    const timerEl = document.getElementById('hud-timer');
+    timerEl.textContent = timeLeft;
+    timerEl.classList.toggle('timer-danger', timeLeft <= 20);
+
+    const livesEl = document.getElementById('hud-lives');
+    livesEl.innerHTML = Array.from({ length: 3 }, (_, i) =>
+      `<span style="color:var(--red);opacity:${i < lives ? 1 : 0.18};font-size:13px">♥</span>`
+    ).join('');
+  }
+
+  // ── Draw ────────────────────────────────────
+  function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,212,245,0.03)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= canvas.width;  x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+    for (let y = 0; y <= canvas.height; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  function drawObstacles() {
+    obstacles.forEach(o => {
+      ctx.fillStyle = '#0f1e30';
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+      ctx.strokeStyle = 'rgba(0,212,245,0.18)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(o.x, o.y, o.w, o.h);
+    });
+  }
+
+  function drawCoin() {
+    const t = Date.now() / 500;
+    const g = ctx.createRadialGradient(coin.x, coin.y, 2, coin.x, coin.y, coin.size);
+    g.addColorStop(0,   '#fffbbb');
+    g.addColorStop(0.5, '#ffd60a');
+    g.addColorStop(1,   '#e6a000');
+    ctx.save();
+    ctx.shadowColor = '#ffd60a';
+    ctx.shadowBlur  = 14;
+    ctx.fillStyle   = g;
+    ctx.beginPath();
+    ctx.arc(coin.x, coin.y, coin.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // pulse ring
+    ctx.save();
+    ctx.globalAlpha  = 0.25 + Math.sin(t) * 0.12;
+    ctx.strokeStyle  = '#ffd60a';
+    ctx.lineWidth    = 1.5;
+    ctx.beginPath();
+    ctx.arc(coin.x, coin.y, coin.size + 4 + Math.sin(t) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPowerUp() {
+    if (!powerUp) return;
+    const t = Date.now() / 400;
+    const color = powerUp.type === 'speed' ? '#2979ff' : '#00d4f5';
+    ctx.save();
+    ctx.shadowColor  = color;
+    ctx.shadowBlur   = 18;
+    ctx.fillStyle    = color;
+    ctx.globalAlpha  = 0.72 + Math.sin(t) * 0.18;
+    ctx.beginPath();
+    ctx.arc(powerUp.x, powerUp.y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.28;
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.arc(powerUp.x, powerUp.y, 15 + Math.sin(t) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.font      = 'bold 8px Oxanium, sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(powerUp.type === 'speed' ? 'VEL' : 'ICE', powerUp.x, powerUp.y + 3);
+    ctx.restore();
+  }
+
+  function drawPlayer() {
+    ctx.font = '36px Arial';
+    ctx.fillText('🖲️', player.x, player.y + 33);
+  }
+
+  function drawEnemy() {
+    ctx.font = '36px Arial';
+    ctx.fillText(enemy.frozen  ? '❄️' : '🌶️', enemy.x,  enemy.y  + 33);
+    ctx.fillText(enemy2.frozen ? '❄️' : '🌶️', enemy2.x, enemy2.y + 33);
+  }
+
+  // ── Logic ────────────────────────────────────
+  function newCoin() {
+    coin.x = Math.random() * (canvas.width  - coin.size * 2) + coin.size;
+    coin.y = Math.random() * (canvas.height - coin.size * 2) + coin.size;
+  }
+
+  function spawnPowerUp() {
+    if (!powerUp && Math.random() < 0.2) {
+      powerUp = {
+        x:    Math.random() * (canvas.width  - 40) + 20,
+        y:    Math.random() * (canvas.height - 40) + 20,
+        type: Math.random() < 0.5 ? 'speed' : 'freeze'
+      };
+    }
+  }
+
+  function collidesWithObstacles(x, y, size) {
+    return obstacles.some(o =>
+      x < o.x + o.w && x + size > o.x &&
+      y < o.y + o.h && y + size > o.y
+    );
+  }
+
+  function screenShake() {
+    const el = document.getElementById('canvas-wrap');
+    el.classList.remove('shaking');
+    void el.offsetWidth;
+    el.classList.add('shaking');
+    setTimeout(() => el.classList.remove('shaking'), 300);
+  }
+
+  function checkCollision() {
+    // coin
+    const dx = player.x - coin.x, dy = player.y - coin.y;
+    if (Math.sqrt(dx*dx + dy*dy) < 30) {
+      score++;
+      enemy.speed  += 0.5;
+      enemy2.speed += 0.5;
+      updateHud();
+      newCoin();
+      spawnPowerUp();
+    }
+
+    // power-up
+    if (powerUp) {
+      const dx2 = player.x - powerUp.x, dy2 = player.y - powerUp.y;
+      if (Math.sqrt(dx2*dx2 + dy2*dy2) < 30) {
+        if (powerUp.type === 'speed') {
+          player.speed = 40;
+          setTimeout(() => player.speed = 20, 3000);
+        } else {
+          enemy.frozen = true; enemy2.frozen = true;
+          setTimeout(() => { enemy.frozen = false; enemy2.frozen = false; }, 3000);
+        }
+        powerUp = null;
+      }
+    }
+
+    // enemies
+    [enemy, enemy2].forEach(e => {
+      if (
+        player.x < e.x + e.size && player.x + player.size > e.x &&
+        player.y < e.y + e.size && player.y + player.size > e.y
+      ) {
+        if (!gameOver) {
+          lives = Math.max(0, lives - 1);
+          updateHud();
+          screenShake();
+          if (lives <= 0) {
+            endGame();
+          } else {
+            player.x = 250; player.y = 250;
+            enemy.x  = 50;  enemy.y  = 50;
+            enemy2.x = 400; enemy2.y = 400;
+          }
+        }
+      }
+    });
+  }
+
+  function moveEnemy(e) {
+    if (e.frozen) return;
+    let nx = e.x, ny = e.y;
+    if (e.x < player.x) nx += e.speed; else nx -= e.speed;
+    if (e.y < player.y) ny += e.speed; else ny -= e.speed;
+    if (!collidesWithObstacles(nx, ny, e.size)) { e.x = nx; e.y = ny; }
+  }
+
+  // ── Game loop ────────────────────────────────
+  function gameLoop() {
+    if (!gameStarted || gameOver) return;
+    clearCanvas();
+    drawObstacles();
+    drawCoin();
+    drawPowerUp();
+    drawPlayer();
+    drawEnemy();
+    moveEnemy(enemy);
+    moveEnemy(enemy2);
+    checkCollision();
+  }
+
+  setInterval(gameLoop, 50);
+
+  setInterval(() => {
+    if (!gameOver && gameStarted) {
+      timeLeft--;
+      updateHud();
+      if (timeLeft <= 0) endGame();
+    }
+  }, 1000);
+
+  // ── Game state ───────────────────────────────
+  function endGame() {
+    gameOver = true;
+    bgMusic.pause();
+
+    const isNew = score > record;
+    if (isNew) { record = score; localStorage.setItem('record', score); }
+
+    document.getElementById('go-score').textContent  = score;
+    document.getElementById('go-record').textContent = record;
+    document.getElementById('record-badge').classList.toggle('show', isNew);
+    document.getElementById('gameover').classList.remove('hidden');
+  }
+
+  function startGame() {
+    document.getElementById('menu').classList.add('hidden');
+    gameStarted = true;
+    initGame();
+    bgMusic.volume = 0.7;
+    bgMusic.play().catch(() => {});
+  }
+
+  function restartGame() {
+    document.getElementById('gameover').classList.add('hidden');
+    gameStarted = true;
+    initGame();
+    bgMusic.currentTime = 0;
+    bgMusic.play().catch(() => {});
+  }
+
+  // ── Controls ─────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (!gameStarted || gameOver) return;
+    let nx = player.x, ny = player.y;
+    if (e.key === 'ArrowUp')    { ny -= player.speed; e.preventDefault(); }
+    if (e.key === 'ArrowDown')  { ny += player.speed; e.preventDefault(); }
+    if (e.key === 'ArrowLeft')  { nx -= player.speed; e.preventDefault(); }
+    if (e.key === 'ArrowRight') { nx += player.speed; e.preventDefault(); }
+    if (!collidesWithObstacles(nx, ny, player.size)) {
+      player.x = Math.max(0, Math.min(canvas.width  - 40, nx));
+      player.y = Math.max(0, Math.min(canvas.height - 40, ny));
+    }
+  });
+</script>
+ <iframe frameborder="0" src="https://itch.io/embed/4725403" width="502" height="167"><a href="https://gifsgames.itch.io/gifsgames">GifsGames by GifsGames</a></iframe>
+</body>
+</html>
