@@ -424,17 +424,10 @@
 
 </div>
 
-<audio id="bgMusic" autoplay loop muted>
-  <source src="https://s1.radio12345.com:8000/stream.mp3" type="audio/mpeg">
-  Seu navegador não suporta áudio HTML5.
-</audio>
-<script>
-document.body.addEventListener("click", () => {
-  const musica = document.getElementById("bgMusic");
-  musica.muted = false;   // libera o som
-  musica.play();          // garante que continue tocando
-});
-</script>
+<iframe src="https://iamusic.radio12345.com/embed" 
+        width="300" height="150" 
+        frameborder="0" allow="autoplay">
+</iframe>
 
 <script>
   // Spawn background particles
