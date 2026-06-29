@@ -424,10 +424,17 @@
 
 </div>
 
-<audio id="radioPlayer" autoplay controls>
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_7b7f3f3f5f.mp3" type="audio/mpeg">
-  Seu navegador não suporta áudio HTML5.
+<audio id="radioPlayer" autoplay loop muted>
+  <source src="https://s1.radio12345.com:8000/stream.mp3" type="audio/mpeg">
 </audio>
+
+<script>
+document.body.addEventListener("click", () => {
+  const radio = document.getElementById("radioPlayer");
+  radio.muted = false;
+  radio.play();
+});
+</script>
 
 <script>
   // Spawn background particles
